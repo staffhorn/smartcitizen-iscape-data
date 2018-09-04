@@ -23,6 +23,8 @@ from scipy.optimize import curve_fit
 from calData_utils import getCalData
 from test_utils import *
 from formula_utils import exponential_smoothing
+from sklearn.metrics import mean_squared_error
+from math import sqrt
 
 alpha_calData = getCalData('alphasense')
 mics_calData = getCalData('mics')
@@ -454,7 +456,12 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
         alphaW = CHANNEL_NAME(currentSensorNames, 'GASES', slot, 'W', 'BOARD_AUX', '')
         alphaA = CHANNEL_NAME(currentSensorNames, 'GASES', slot, 'A', 'BOARD_AUX', '')
         temp = CHANNEL_NAME(currentSensorNames, 'TEMPERATURE', 0, '?ONE', 'BOARD_AUX', 'C')
+        if temp not in dataframeResult.columns:
+            temp = CHANNEL_NAME(currentSensorNames, 'TEMP', 'SHT31', '_TEMP', 'BOARD_AUX', 'C')
+
         hum = CHANNEL_NAME(currentSensorNames, 'HUMIDITY', 0, '?ONE', 'BOARD_AUX', '%')
+        if hum not in dataframeResult.columns:
+            hum = CHANNEL_NAME(currentSensorNames, 'HUM', 'SHT31', '_HUM', 'BOARD_AUX', 'C')
         
         _listNames = (alphaW, alphaA, temp, hum)
 
@@ -562,10 +569,13 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
                         pollutant_ref = (pollutant + '_' + ref_append)
                         if pollutant_ref in dataframeTrimRef.columns and not dataframeTrimRef.empty:
                             slopeRef, interceptRef, r_valueRef, p_valueRef, std_errRef = linregress(np.transpose(dataframeTrim[pollutant_column]), np.transpose(dataframeTrimRef[pollutant_ref]))
+                            rmseRef = sqrt(mean_squared_error(dataframeTrim[pollutant_column], dataframeTrimRef[pollutant_ref]))
                         else:
                             r_valueRef = np.nan
+                            rmseRef = np.nan
                     else:
                         r_valueRef = np.nan
+                        rmseRef = np.nan
                         print 'No Ref available'
                     
                     ## Get some metrics
@@ -577,6 +587,7 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
                     
                     tempCorrParams = list(CorrParamsTrim)
                     tempCorrParams.insert(0,r_valueRef**2)
+                    tempCorrParams.insert(1, rmseRef)
                     tempCorrParams.insert(1,pollutant_avg)
                     tempCorrParams.insert(1,hum_stderr)
                     tempCorrParams.insert(1,hum_avg)
@@ -587,6 +598,7 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
             
             ## Add relevant metadata for this method
             labelsCP = ['r_valueRef',
+                        'rmseRef',
                         'avg_temp',
                         'stderr_temp',
                         'avg_hum',
@@ -664,11 +676,18 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
                     pollutant_ref = pollutant + '_' + ref_append
                     if pollutant_ref in dataframeTrimRef.columns and not dataframeTrimRef.empty:
                         slopeRef, interceptRef, r_valueRef, p_valueRef, std_errRef = linregress(np.transpose(dataframeTrimRef[pollutant_ref]),np.transpose(dataframeTrim[pollutant_column]))
+                        rmseRef = sqrt(mean_squared_error(dataframeTrimRef[pollutant_ref],dataframeTrim[pollutant_column]))
                         CorrParamsTrim.append(r_valueRef**2)
+                        CorrParamsTrim.append(rmseRef)
+                        # CorrParamsTrim.append('True')
                     else:
                         CorrParamsTrim.append(np.nan)
+                        CorrParamsTrim.append(np.nan)
+                        # CorrParamsTrim.append('False')
                 else:
                     CorrParamsTrim.append(np.nan)
+                    CorrParamsTrim.append(np.nan)
+                    # CorrParamsTrim.append('False')
                     print 'No ref Available'
                 
                 ## Get some metrics
@@ -685,6 +704,7 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
             
             ## TODO: Add relevant metadata for this method
             labelsCP = ['r_valueRef',
+                        'rmseRef',
                         'avg_temp',
                         'stderr_temp',
                         'avg_hum',
@@ -713,7 +733,8 @@ def calculatePollutantsAlpha(_dataframe, _pollutantTuples, _append, _refAvail, _
         # 
         # print CorrParamsDF
         # 
-        # deltaAuxBas_avg = CorrParamsDF.loc[CorrParamsDF['valid'].fillna(False), 'deltaAuxBas_avg'].mean(skipna = True)
+        # print CorrParamsDF.loc[CorrParamsDF['valid'].fillna(False), 'r_valueRef'].mean(skipna = True)
+        # print CorrParamsDF.loc[CorrParamsDF['valid'].fillna(False), 'rmseRef'].mean(skipna = True)
         # deltaAuxBas_std = CorrParamsDF.loc[CorrParamsDF['valid'].fillna(False), 'deltaAuxBas_avg'].std(skipna = True)
         # ratioAuxBas_avg = CorrParamsDF.loc[CorrParamsDF['valid'].fillna(False), 'ratioAuxBas_avg'].mean(skipna = True)
         # ratioAuxBas_std = CorrParamsDF.loc[CorrParamsDF['valid'].fillna(False), 'ratioAuxBas_avg'].std(skipna = True)

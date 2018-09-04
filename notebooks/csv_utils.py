@@ -1,5 +1,3 @@
-# All here should go under 1.1.2
-
 start_date = 0
 end_date = 0
 openData = list()
