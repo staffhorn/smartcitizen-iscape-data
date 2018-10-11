@@ -6,13 +6,16 @@ import numpy as np
 from ipywidgets import interact
 import ipywidgets as widgets
 from IPython.display import display, clear_output, Markdown
+import yaml
+from os import getcwd, walk
+from os.path import join
 
 # Define base url
 base_url = 'https://api.smartcitizen.me/v0/devices/'
 kits_url = 'https://api.smartcitizen.me/v0/kits/'
 
 # TODO: Get this automatically
-station_kit_id = 19
+station_kit_ids = (19, 21)
 kit_kit_id = 11
 
 # Convertion table from API SC to Pandas
@@ -28,6 +31,18 @@ frequencyConvertLUT = (['y','A'],
     ['ms','ms'])
 
 from test_utils import currentSensorNames
+
+def getSensors(directory):
+    devices = dict()
+    mydir = join(directory, 'sensorData')
+    for root, dirs, files in walk(mydir):
+        for _file in files:
+            if _file.endswith(".yaml"):
+                filePath = join(root, _file)
+                stream = open(filePath)
+                yamlFile = yaml.load(stream)
+                devices.update(yamlFile)
+    return devices
 
 def getKitID(_device, verbose):
     # Get device
@@ -69,7 +84,7 @@ def getPlatformSensorID():
         return 'API reported {}'.format(sensors.status_code)   
     return sensors
 
-def getDeviceData(_device, verbose, frequency):
+def getDeviceData(_device, verbose, frequency, start_date, end_date):
 
     # Convert frequency from pandas to API's
     for index, letter in enumerate(frequency):
@@ -89,10 +104,8 @@ def getDeviceData(_device, verbose, frequency):
     rollup = rollup_value + rollup_unit
 
     # Get device
-    print 'Getting device {} at url {}'.format(_device, base_url + '{}/'.format(_device))
-
     deviceR = requests.get(base_url + '{}/'.format(_device))
-    
+
     # If status code OK, retrieve data
     if deviceR.status_code == 200 or deviceR.status_code == 201:
         
@@ -145,7 +158,7 @@ def getDeviceData(_device, verbose, frequency):
         # Print stuff if requested
         if verbose:
             print 'Kit ID {}'.format(deviceRJSON['kit']['id'])
-            print '\tFrom Date {} to Date {}'.format(fromDate, toDate)
+            print '\tFrom Date {} to Date {}'.format(start_date, end_date)
             print '\tDevice located in {}'.format(location)
             # print 'Sensor IDs'
             # for sensor_id in sensor_real_ids:
@@ -154,7 +167,7 @@ def getDeviceData(_device, verbose, frequency):
             #     print 'Sensor Name Platform: {}'.format(sensor_real_names[sensor_real_ids.index(sensor_id)])
             #     print 'Sensor Name Target: {}'.format(sensor_target_names[sensor_real_ids.index(sensor_id)])
 
-        if deviceRJSON['kit']['id'] == station_kit_id:
+        if deviceRJSON['kit']['id'] in station_kit_ids:
             hasAlpha = True
         else:
             hasAlpha = False
@@ -163,9 +176,8 @@ def getDeviceData(_device, verbose, frequency):
         for sensor_id in sensor_real_ids:
             indexDF = list()
             dataDF = list()
-            
             # Request sensor per ID
-            sensor_id_r = requests.get(base_url + '{}/readings?from={}&rollup={}&sensor_id={}&to={}'.format(_device, fromDate, rollup, sensor_id, toDate))
+            sensor_id_r = requests.get(base_url + '{}/readings?from={}&rollup={}&sensor_id={}&to={}'.format(_device, start_date.strftime('%Y-%m-%d'), rollup, sensor_id, end_date.strftime('%Y-%m-%d')))
             sensor_id_rJSON = sensor_id_r.json()
             
             # Put the data in lists
@@ -200,12 +212,17 @@ def getDeviceData(_device, verbose, frequency):
     else:
         return (deviceR.status_code)
 
-def getReadingsAPI(_devices, frequency):
+def getReadingsAPI(_devices, frequency, start_date, end_date):
     readingsAPI = dict()
     readingsAPI['devices'] = dict()
+    # Get dict with sensor history
+    sensorHistory = getSensors(getcwd())
+
     for device in _devices:
         print 'Loading device {}'.format(device)
-        data, location, toDate, fromDate, hasAlpha, latitude, longitude = getDeviceData(device, True, frequency)
+        
+        data, location, toDate, fromDate, hasAlpha, latitude, longitude = getDeviceData(device, True, frequency, start_date, end_date)
+
         readingsAPI['devices'][device] = dict()
         if (type(data) == int) and (not (data == 200 or data == 201)):
             readingsAPI['devices'][device]['valid'] = False
@@ -219,14 +236,13 @@ def getReadingsAPI(_devices, frequency):
             readingsAPI['devices'][device]['location'] = location
 
             if hasAlpha:
-                print 'Device ID says it had alphasense sensors'
+                print '\tDevice ID says it had alphasense sensors, loading them'
                 # retrieve data from API for alphasense
                 readingsAPI['devices'][device]['alphasense'] = dict()
-                alphaDelta = dict()
-                alphaDelta['CO'] = 'TEMPORARY_CO'
-                alphaDelta['NO2'] = 'TEMPORARY_NO2'
-                alphaDelta['O3'] = 'TEMPORARY_O3'
-                alphaDelta['SLOTS'] = 'TEMPORARY_SLOTS'
-                readingsAPI['devices'][device]['alphasense'] = alphaDelta
-            
+                try:
+                    readingsAPI['devices'][device]['alphasense'] = sensorHistory[device]['gas_pro_board']
+                except:
+
+                    print 'Device not in history'
+        print '\tDone'
     return readingsAPI

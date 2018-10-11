@@ -1,8 +1,14 @@
 # Remove
 data
 
+#
+notebooks/temp-plot.html
+notebooks/models/export/*
+notebooks/caldata/*
+
 # MAC stuff
 */.DS_Store
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

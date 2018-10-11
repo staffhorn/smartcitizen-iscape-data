@@ -18,9 +18,7 @@ pollutantLUT = (['CO', 28, 'ppm'],
 
 ref_append = 'REF'
 
-
 currentSensorsh = ('https://raw.githubusercontent.com/fablabbcn/smartcitizen-kit-20/master/lib/Sensors/Sensors.h')
-
 
 def getSensorNames(_sensorsh):
     # read only 20 000 chars
@@ -116,7 +114,7 @@ def clearTests():
     clear_output()
     selectedTests = ()
 
-def loadTest():
+def loadTest(frequency):
     
     # print selectedTests
     readings = {}
@@ -138,12 +136,12 @@ def loadTest():
         for types in ('W','A'):
             for slot in (1,2,3):
                 targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'GASES', slot, types, 'BOARD_AUX', ''))
-        targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'TEMPERATURE', 0, '?ONE', 'BOARD_AUX', ''))
-        targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'HUMIDITY', 0, '?ONE', 'BOARD_AUX', ''))
-        targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'SENSOR_CO', '', '', 'BOARD_URBAN', 'kOhm'))
-        targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'SENSOR_NO2', '', '', 'BOARD_URBAN', 'kOhm'))
-        targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'TEMPERATURE', '', '', 'BOARD_URBAN', 'C'))
-        targetSensorNames.append(CHANNEL_NAME(currentSensorNames, 'HUMIDITY', '', '', 'BOARD_URBAN', '%'))
+        targetSensorNames.append('EXT_TEMP')
+        targetSensorNames.append('EXT_HUM')
+        targetSensorNames.append('CO_MICS_RAW')
+        targetSensorNames.append('NO2_MICS_RAW')
+        targetSensorNames.append('TEMP')
+        targetSensorNames.append('HUM')
         
         testSensorNames = list()
         for types in ('W','A'):
@@ -176,7 +174,7 @@ def loadTest():
             display(Markdown('#### {}'.format(kit)))
             # Get fileName
             fileNameProc = test['test']['devices']['kits'][kit]['fileNameProc']
-            frequency = test['test']['devices']['kits'][kit]['frequency']
+            # frequency = test['test']['devices']['kits'][kit]['frequency']
             fileData = join(testPath, fileNameProc)
             location = test['test']['devices']['kits'][kit]['location']
             display(Markdown('Kit **{}** located **{}**'.format(kit, location)))
