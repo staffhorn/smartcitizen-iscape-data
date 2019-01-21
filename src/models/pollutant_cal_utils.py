@@ -125,6 +125,7 @@ def createBaselines(_dataBaseline, _numberDeltas, _type_regress = 'linear', _plo
     resultData = _dataBaseline.copy()
 
     name = resultData.iloc[:,0].name
+    print (resultData.iloc[:,0].name, resultData.iloc[:,1].name)
     pearsons =[]
     
     for delta in _numberDeltas:
@@ -275,6 +276,7 @@ def calculateBaselineDay(_dataFrame, _typeSensor, _listNames, _deltas, _type_reg
 
         ## Un-pack list names
         alphaW, alphaA, temp, hum = _listNames
+        print (alphaW, alphaA, temp, hum)
 
         ## Correlation between Baseline and original auxiliary
         slopeAuxBase, interceptAuxBase, rAuxBase, pAuxBase, std_errAuxBase = linregress(np.transpose(data_baseline.values), np.transpose(dataframeCalc.iloc[:,1].values))
