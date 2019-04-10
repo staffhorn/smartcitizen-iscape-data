@@ -1,6 +1,10 @@
 iScape Sensor Analysis Framework
 =======
 
+**This branch is now deprecated**. Use the Master branch for the latest development in python3.
+
+---
+
 Welcome to the iScape Sensor Analysis Framework. The framework is built with the purpose of helping on the calibration process of the sensors on field tests and it aim to be the primary tool for manipulating the sensors data.
 
 ![](https://i.imgur.com/CvUuWpL.gif)
